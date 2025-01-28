@@ -1,0 +1,25 @@
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+--made by yee_kunkun(my roblox user name)
+local Workspace = game:GetService("Workspace")
+
+local function setHoldDuration(prompt, duration)
+    if prompt:IsA("ProximityPrompt") then
+        prompt.HoldDuration = duration
+    end
+end
+
+Workspace.DescendantAdded:Connect(function(descendant)
+    if descendant:IsA("ProximityPrompt") then
+        descendant.PromptShown:Connect(function()
+            setHoldDuration(descendant, 0.1)
+        end)
+    end
+end)
+
+for _, child in ipairs(Workspace:GetDescendants()) do
+    if child:IsA("ProximityPrompt") then
+        setHoldDuration(child, 0.1)
+    end
+end
