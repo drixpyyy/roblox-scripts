@@ -1,0 +1,396 @@
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+
+local Colors = {
+    Background = Color3.fromRGB(25, 25, 25),
+    Primary = Color3.fromRGB(40, 40, 40),
+    Secondary = Color3.fromRGB(50, 50, 50),
+    Text = Color3.fromRGB(220, 220, 220),
+    Accent = Color3.fromRGB(0, 120, 220),
+    RemoteEvent = Color3.fromRGB(0, 180, 120),
+    RemoteFunction = Color3.fromRGB(0, 120, 220)
+}
+
+local RemoteDetectorGui = Instance.new("ScreenGui")
+RemoteDetectorGui.Name = "RemoteDetectorGui"
+RemoteDetectorGui.Parent = CoreGui
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0.5, 0, 0.7, 0)
+Frame.Position = UDim2.new(0.25, 0, 0.15, 0)
+Frame.BackgroundColor3 = Colors.Background
+Frame.BorderColor3 = Colors.Primary
+Frame.BorderSizePixel = 1
+Frame.Parent = RemoteDetectorGui
+
+local function makeDraggable(dragParent)
+    local dragging
+    local dragInput
+    local dragStart
+    local startPos
+    local dragTopbar = Instance.new("Frame")
+    dragTopbar.Size = UDim2.new(1, 0, 0.1, 0)
+    dragTopbar.BackgroundTransparency = 1
+    dragTopbar.Parent = dragParent
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        dragParent.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    dragTopbar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = dragParent.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    dragTopbar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+
+    return dragTopbar
+end
+local DragTopbar = makeDraggable(Frame)
+
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0.1, 0)
+TitleBar.BackgroundColor3 = Colors.Primary
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = Frame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -10, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Text = "Remote Detector"
+Title.Font = Enum.Font.GothamMedium
+Title.TextSize = 16
+Title.TextColor3 = Colors.Text
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
+Title.Parent = TitleBar
+
+local SearchBox = Instance.new("TextBox")
+SearchBox.Size = UDim2.new(1, -20, 0, 30)
+SearchBox.Position = UDim2.new(0, 10, 0.1, 10)
+SearchBox.BackgroundColor3 = Colors.Secondary
+SearchBox.BorderSizePixel = 0
+SearchBox.Font = Enum.Font.GothamMedium
+SearchBox.TextSize = 14
+SearchBox.PlaceholderText = "Search Remotes..."
+SearchBox.TextColor3 = Colors.Text
+SearchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+SearchBox.Parent = Frame
+
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Size = UDim2.new(1, 0, 0.7, 0)
+ScrollFrame.Position = UDim2.new(0, 0, 0.25, 0)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.BorderSizePixel = 0
+ScrollFrame.ScrollBarThickness = 4
+ScrollFrame.ScrollBarImageColor3 = Colors.Accent
+ScrollFrame.Parent = Frame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.Name
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.Parent = ScrollFrame
+
+local function createRemoteUsageGui(remotePath, remoteType)
+    local DetailsGui = Instance.new("ScreenGui")
+    DetailsGui.Name = "RemoteDetailsGui"
+    DetailsGui.Parent = CoreGui
+
+    local DetailsFrame = Instance.new("Frame")
+    DetailsFrame.Size = UDim2.new(0.4, 0, 0.5, 0)
+    DetailsFrame.Position = UDim2.new(0.3, 0, 0.25, 0)
+    DetailsFrame.BackgroundColor3 = Colors.Background
+    DetailsFrame.BorderColor3 = Colors.Primary
+    DetailsFrame.BorderSizePixel = 1
+    DetailsFrame.Parent = DetailsGui
+
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Size = UDim2.new(0.1, 0, 0.1, 0)
+    CloseButton.Position = UDim2.new(0.9, 0, 0, 0)
+    CloseButton.Text = "✕"
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.TextSize = 16
+    CloseButton.BackgroundColor3 = Colors.Background
+    CloseButton.BorderSizePixel = 0
+    CloseButton.TextColor3 = Color3.fromRGB(200, 50, 50)
+    
+    CloseButton.MouseEnter:Connect(function()
+        CloseButton.BackgroundColor3 = Colors.Secondary
+        CloseButton.TextColor3 = Color3.fromRGB(255, 80, 80)
+    end)
+    CloseButton.MouseLeave:Connect(function()
+        CloseButton.BackgroundColor3 = Colors.Background
+        CloseButton.TextColor3 = Color3.fromRGB(200, 50, 50)
+    end)
+    
+    CloseButton.Parent = DetailsFrame
+
+    CloseButton.MouseButton1Click:Connect(function()
+        DetailsGui:Destroy()
+    end)
+
+    local DetailsTitle = Instance.new("TextLabel")
+    DetailsTitle.Size = UDim2.new(0.8, 0, 0.1, 0)
+    DetailsTitle.Position = UDim2.new(0.1, 0, 0, 0)
+    DetailsTitle.Text = "Remote Usage: " .. remotePath
+    DetailsTitle.Font = Enum.Font.GothamMedium
+    DetailsTitle.TextSize = 14
+    DetailsTitle.BackgroundTransparency = 1
+    DetailsTitle.TextColor3 = Colors.Text
+    DetailsTitle.Parent = DetailsFrame
+
+    local CopyButton = Instance.new("TextButton")
+    CopyButton.Size = UDim2.new(0.1, 0, 0.1, 0)
+    CopyButton.Position = UDim2.new(0, 0, 0, 0)
+    CopyButton.Text = "📋"
+    CopyButton.Font = Enum.Font.GothamBold
+    CopyButton.TextSize = 16
+    CopyButton.BackgroundColor3 = Colors.Background
+    CopyButton.BorderSizePixel = 0
+    CopyButton.TextColor3 = Colors.Accent
+    
+    CopyButton.MouseEnter:Connect(function()
+        CopyButton.BackgroundColor3 = Colors.Secondary
+        CopyButton.TextColor3 = Color3.fromRGB(100, 180, 255)
+    end)
+    CopyButton.MouseLeave:Connect(function()
+        CopyButton.BackgroundColor3 = Colors.Background
+        CopyButton.TextColor3 = Colors.Accent
+    end)
+    
+    CopyButton.Parent = DetailsFrame
+
+    local UsageScroll = Instance.new("ScrollingFrame")
+    UsageScroll.Size = UDim2.new(0.9, 0, 0.8, 0)
+    UsageScroll.Position = UDim2.new(0.05, 0, 0.15, 0)
+    UsageScroll.BackgroundColor3 = Colors.Primary
+    UsageScroll.BorderSizePixel = 1
+    UsageScroll.BorderColor3 = Colors.Secondary
+    UsageScroll.ScrollBarThickness = 4
+    UsageScroll.ScrollBarImageColor3 = Colors.Accent
+    UsageScroll.Parent = DetailsFrame
+
+    local UsageText = Instance.new("TextLabel")
+    UsageText.Size = UDim2.new(1, -10, 1, 0)
+    UsageText.Position = UDim2.new(0, 5, 0, 0)
+    UsageText.BackgroundTransparency = 1
+    UsageText.Font = Enum.Font.Code
+    UsageText.TextSize = 12
+    UsageText.TextColor3 = Colors.Text
+    UsageText.TextXAlignment = Enum.TextXAlignment.Left
+    UsageText.TextYAlignment = Enum.TextYAlignment.Top
+    UsageText.RichText = true
+    UsageText.Parent = UsageScroll
+
+    local exampleText = ""
+    local copiedCode = ""
+    
+    if remotePath:find("VoiceChatService") then
+        exampleText = [[
+<font color="#00B4FF"><b>Voice Chat Remote Usage:</b></font>
+```lua
+-- Client-side
+local VoiceChatService = game:GetService("VoiceChatService")
+VoiceChatService:joinVoice()
+
+-- To leave voice chat
+VoiceChatService:leaveVoice()
+```
+<font color="#00B4FF"><b>Potential Use Cases:</b></font>
+- Join team voice channels
+- Enable/disable microphone
+- Check voice chat status
+        ]]
+        copiedCode = [[-- Client-side
+local VoiceChatService = game:GetService("VoiceChatService")
+VoiceChatService:joinVoice()
+
+-- To leave voice chat
+VoiceChatService:leaveVoice()]]
+    elseif remoteType == "RemoteEvent" then
+        exampleText = string.format([[
+<font color="#00B4FF"><b>RemoteEvent Usage for %s:</b></font>
+```lua
+-- Client-side (Firing to Server)
+local remote = %s
+remote:FireServer(arg1, arg2)
+
+-- Server-side (Handling the Event)
+remote.OnServerEvent:Connect(function(player, arg1, arg2)
+    -- Process the received arguments
+    print("Received from " .. player.Name)
+end)
+```
+<font color="#00B4FF"><b>Common Patterns:</b></font>
+- Sending player actions
+- Triggering server-side events
+- Synchronizing game states
+        ]], remotePath, remotePath)
+        copiedCode = string.format([[-- Client-side (Firing to Server)
+local remote = %s
+remote:FireServer(arg1, arg2)
+
+-- Server-side (Handling the Event)
+remote.OnServerEvent:Connect(function(player, arg1, arg2)
+    -- Process the received arguments
+    print("Received from " .. player.Name)
+end)]], remotePath)
+    elseif remoteType == "RemoteFunction" then
+        exampleText = string.format([[
+<font color="#00B4FF"><b>RemoteFunction Usage for %s:</b></font>
+```lua
+-- Client-side (Invoking Server)
+local remote = %s
+local result = remote:InvokeServer(arg1, arg2)
+print("Server returned:", result)
+
+-- Server-side (Handling the Invocation)
+remote.OnServerInvoke = function(player, arg1, arg2)
+    -- Process arguments and return a value
+    return someComputedValue
+end
+```
+<font color="#00B4FF"><b>Common Use Cases:</b></font>
+- Data retrieval
+- Server-side computations
+- Validation checks
+        ]], remotePath, remotePath)
+        copiedCode = string.format([[-- Client-side (Invoking Server)
+local remote = %s
+local result = remote:InvokeServer(arg1, arg2)
+print("Server returned:", result)
+
+-- Server-side (Handling the Invocation)
+remote.OnServerInvoke = function(player, arg1, arg2)
+    -- Process arguments and return a value
+    return someComputedValue
+end]], remotePath)
+    else
+        exampleText = [[
+<font color="#FF6B6B"><b>Generic Remote Interaction:</b></font>
+Unable to generate specific example.
+Check the remote's context and purpose.
+        ]]
+        copiedCode = "-- No specific code example available"
+    end
+
+    UsageText.Text = exampleText
+
+    -- Copy functionality
+    CopyButton.MouseButton1Click:Connect(function()
+        setclipboard(copiedCode)
+        CopyButton.Text = "✓"
+        task.wait(0.5)
+        CopyButton.Text = "📋"
+    end)
+
+    return DetailsGui
+end
+
+local function DetectRemotes(searchTerm)
+    for _, child in ipairs(ScrollFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    local function scanForRemotes(parent)
+        for _, child in ipairs(parent:GetDescendants()) do
+            if (child:IsA("RemoteEvent") or child:IsA("RemoteFunction")) and 
+               (not searchTerm or child:GetFullName():lower():find(searchTerm:lower())) then
+                local RemoteButton = Instance.new("TextButton")
+                RemoteButton.Size = UDim2.new(1, -10, 0, 35)
+                RemoteButton.Position = UDim2.new(0, 5, 0, 0)
+                RemoteButton.Text = child:GetFullName()
+                RemoteButton.Font = Enum.Font.GothamMedium
+                RemoteButton.TextSize = 14
+                RemoteButton.BackgroundColor3 = child:IsA("RemoteEvent") and Colors.RemoteEvent or Colors.RemoteFunction
+                RemoteButton.BackgroundTransparency = 0.7
+                RemoteButton.BorderSizePixel = 0
+                RemoteButton.TextColor3 = Colors.Text
+                
+                RemoteButton.MouseEnter:Connect(function()
+                    RemoteButton.BackgroundTransparency = 0.4
+                end)
+                RemoteButton.MouseLeave:Connect(function()
+                    RemoteButton.BackgroundTransparency = 0.7
+                end)
+                
+                RemoteButton.MouseButton1Click
+                :Connect(function()
+    local existingGui = CoreGui:FindFirstChild("RemoteDetailsGui")
+    if existingGui then
+        existingGui:Destroy()
+    end
+    
+    createRemoteUsageGui(child:GetFullName(), child.ClassName)
+end)
+                
+                RemoteButton.Parent = ScrollFrame
+            end
+        end
+    end
+    
+    scanForRemotes(game)
+end
+
+SearchBox.Changed:Connect(function(property)
+    if property == "Text" then
+        DetectRemotes(SearchBox.Text)
+    end
+end)
+
+local RefreshButton = Instance.new("TextButton")
+RefreshButton.Size = UDim2.new(1, 0, 0.1, 0)
+RefreshButton.Position = UDim2.new(0, 0, 0.95, 0)
+RefreshButton.Text = "Refresh Remotes"
+RefreshButton.Font = Enum.Font.GothamMedium
+RefreshButton.TextSize = 14
+RefreshButton.BackgroundColor3 = Colors.Primary
+RefreshButton.BorderSizePixel = 0
+RefreshButton.TextColor3 = Colors.Accent
+RefreshButton.Parent = Frame
+
+RefreshButton.MouseEnter:Connect(function()
+    RefreshButton.BackgroundColor3 = Colors.Secondary
+end)
+RefreshButton.MouseLeave:Connect(function()
+    RefreshButton.BackgroundColor3 = Colors.Primary
+end)
+
+RefreshButton.MouseButton1Click:Connect(function()
+    SearchBox.Text = ""
+    DetectRemotes()
+end)
+
+DetectRemotes()
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.F3 and not gameProcessed then
+        RemoteDetectorGui.Enabled = not RemoteDetectorGui.Enabled
+    end
+end)
