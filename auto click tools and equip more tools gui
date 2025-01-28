@@ -1,0 +1,125 @@
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+-- made by yee_kunkun(this is my roblox user name)
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ToolActivationGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local draggableFrame = Instance.new("Frame")
+draggableFrame.Name = "DraggableFrame"
+draggableFrame.Size = UDim2.new(0, 300, 0, 80)
+draggableFrame.Position = UDim2.new(0.5, -150, 0.5, -40)
+draggableFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+draggableFrame.BorderSizePixel = 0
+draggableFrame.Parent = screenGui
+
+local title = Instance.new("TextLabel")
+title.Text = "Tool Activation"
+title.Size = UDim2.new(1, 0, 0, 20)
+title.Position = UDim2.new(0, 0, -0.25, 0)
+title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 14
+title.Parent = draggableFrame
+
+local continuousButton = Instance.new("TextButton")
+continuousButton.Text = "Continuous Activation"
+continuousButton.Size = UDim2.new(0.5, 0, 0.5, 0)
+continuousButton.Position = UDim2.new(0, 0, 0.25, 0)
+continuousButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+continuousButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+continuousButton.Font = Enum.Font.SourceSansBold
+continuousButton.TextSize = 12
+continuousButton.Parent = draggableFrame
+
+local equipButton = Instance.new("TextButton")
+equipButton.Text = "Equip Next Tool"
+equipButton.Size = UDim2.new(0.5, 0, 0.5, 0)
+equipButton.Position = UDim2.new(0.5, 0, 0.25, 0)
+equipButton.BackgroundColor3 = Color3.fromRGB(50, 150, 200)
+equipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+equipButton.Font = Enum.Font.SourceSansBold
+equipButton.TextSize = 12
+equipButton.Parent = draggableFrame
+
+local isActivating = false
+
+local function activateAllTools()
+    local character = game.Players.LocalPlayer.Character
+    if not character then return end
+
+    local tools = character:GetChildren()
+    for _, tool in ipairs(tools) do
+        if tool:IsA("Tool") then
+            tool:Activate()
+        end
+    end
+end
+
+local function startActivation()
+    isActivating = true
+    while isActivating and wait() do
+        activateAllTools()
+    end
+end
+
+continuousButton.MouseButton1Click:Connect(function()
+    if isActivating then
+        isActivating = false
+        continuousButton.Text = "Continuous Activation"
+    else
+        isActivating = true
+        task.spawn(startActivation)
+        continuousButton.Text = "Stop Activation"
+    end
+end)
+
+local lastEquippedToolIndex = 0
+local function equipNextTool()
+    local player = game.Players.LocalPlayer
+    local backpack = player:WaitForChild("Backpack")
+    local tools = backpack:GetChildren()
+
+    for i = 1, #tools do
+        local tool = tools[i]
+        if tool:IsA("Tool") and tool.Parent == backpack then
+            if i > lastEquippedToolIndex then
+                tool.Parent = player.Character
+                lastEquippedToolIndex = i
+                return
+            end
+        end
+    end
+
+    lastEquippedToolIndex = 0
+end
+
+equipButton.MouseButton1Click:Connect(function()
+    equipNextTool()
+end)
+
+local dragging = false
+local dragInput, mousePos, framePos
+
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        mousePos = input.Position
+        framePos = draggableFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - mousePos
+        draggableFrame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+    end
+end)
