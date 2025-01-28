@@ -1,0 +1,100 @@
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+-- auto click ClickDetector
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoClickerGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local draggableFrame = Instance.new("Frame")
+draggableFrame.Name = "DraggableFrame"
+draggableFrame.Size = UDim2.new(0, 200, 0, 100)
+draggableFrame.Position = UDim2.new(0.5, -100, 0.5, -50)
+draggableFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+draggableFrame.BorderSizePixel = 0
+draggableFrame.Parent = screenGui
+
+local titleBar = Instance.new("Frame")
+titleBar.Name = "TitleBar"
+titleBar.Size = UDim2.new(1, 0, 0, 20)
+titleBar.Position = UDim2.new(0, 0, 0, 0)
+titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = draggableFrame
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Text = "Auto Clicker"
+titleLabel.Size = UDim2.new(1, 0, 1, 0)
+titleLabel.Position = UDim2.new(0, 0, 0, 0)
+titleLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.TextSize = 14
+titleLabel.Parent = titleBar
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Text = "Start Auto Click"
+toggleButton.Size = UDim2.new(1, 0, 0, 30)
+toggleButton.Position = UDim2.new(0, 0, 0, 30)
+toggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.TextSize = 14
+toggleButton.Parent = draggableFrame
+
+local isClicking = false
+
+local function startAutoClick()
+    isClicking = true
+    toggleButton.Text = "Stop Auto Click"
+    toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    while isClicking and wait(0.1) do
+        local character = game.Players.LocalPlayer.Character
+        if character then
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                local clickDetectors = workspace:GetDescendants()
+                for _, obj in ipairs(clickDetectors) do
+                    if obj:IsA("ClickDetector") and (rootPart.Position - obj.Parent.Position).Magnitude <= 20 then
+                        fireclickdetector(obj)
+                    end
+                end
+            end
+        end
+    end
+end
+
+toggleButton.MouseButton1Click:Connect(function()
+    if isClicking then
+        isClicking = false
+        toggleButton.Text = "Start Auto Click"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    else
+        task.spawn(startAutoClick)
+    end
+end)
+
+local dragging = false
+local dragInput, mousePos, framePos
+
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        mousePos = input.Position
+        framePos = draggableFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - mousePos
+        draggableFrame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+    end
+end)
