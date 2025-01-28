@@ -1,0 +1,88 @@
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+-- auto grab v2
+local Workspace = game:GetService("Workspace")
+
+local function setHoldDuration(prompt, duration)
+    if prompt:IsA("ProximityPrompt") then
+        prompt.HoldDuration = duration
+    end
+end
+
+Workspace.DescendantAdded:Connect(function(descendant)
+    if descendant:IsA("ProximityPrompt") then
+        descendant.PromptShown:Connect(function()
+            setHoldDuration(descendant, 0)
+        end)
+    end
+end)
+
+for _, child in ipairs(Workspace:GetDescendants()) do
+    if child:IsA("ProximityPrompt") then
+        setHoldDuration(child, 0)
+    end
+end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ProximityPromptController"
+screenGui.ResetOnSpawn = false
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 200, 0, 50)
+button.Position = UDim2.new(0.5, -100, 0.5, -25)
+button.Text = "Start"
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 20
+button.BackgroundColor3 = Color3.new(0.3, 0.7, 0.3)
+button.BorderSizePixel = 0
+
+button.Parent = screenGui
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local dragging = false
+local dragInput, mousePos, framePos
+
+local function update(input)
+    local delta = input.Position - mousePos
+    button.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+end
+
+button.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        mousePos = input.Position
+        framePos = button.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+button.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        update(input)
+    end
+end)
+
+local isTriggering = false
+button.Activated:Connect(function()
+    if isTriggering then
+        button.Text = "Start"
+        button.BackgroundColor3 = Color3.new(0.3, 0.7, 0.3)
+        isTriggering = false
+    else
+        button.Text = "Stop"
+        button.BackgroundColor3 = Color3.new(0.7, 0.3, 0.3)
+        isTriggering = true
+    end
+end)
